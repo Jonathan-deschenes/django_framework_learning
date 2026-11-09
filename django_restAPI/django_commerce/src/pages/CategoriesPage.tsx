@@ -1,22 +1,10 @@
-import { useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { CategoryTree } from '../components/CategoryTree'
 import { ErrorState, PageLoading } from '../components/States'
-import { FolderIcon } from '../components/icons'
 import { useTaxonomy } from '../contexts/TaxonomyContext'
 import { formatNumber } from '../lib/format'
 
 export function CategoriesPage() {
-  const { categories, categoryById, loading, error, reload } = useTaxonomy()
-
-  const childCounts = useMemo(() => {
-    const counts = new Map<number, number>()
-    categories.forEach((category) => {
-      if (category.parent !== null) {
-        counts.set(category.parent, (counts.get(category.parent) ?? 0) + 1)
-      }
-    })
-    return counts
-  }, [categories])
+  const { categories, loading, error, reload } = useTaxonomy()
 
   if (loading) {
     return (
@@ -48,37 +36,25 @@ export function CategoriesPage() {
         </p>
       </div>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {categories.map((category) => {
-          const parent = category.parent !== null ? categoryById.get(category.parent) : undefined
-          const childCount = childCounts.get(category.id) ?? 0
+      <section className="mt-8 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
+              Arborescence
+            </p>
+            <h2 className="mt-1 text-lg font-semibold tracking-tight text-slate-900">
+              Explorer les catégories
+            </h2>
+          </div>
+          <p className="text-sm text-slate-500">
+            Développez une catégorie pour afficher ses sous-catégories.
+          </p>
+        </div>
 
-          return (
-            <Link
-              key={category.id}
-              to={`/categories/${category.id}`}
-              className="group flex items-start gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-            >
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
-                <FolderIcon />
-              </span>
-              <span className="min-w-0">
-                <span className="block truncate text-base font-semibold text-slate-900 group-hover:text-indigo-700">
-                  {category.name}
-                </span>
-                <span className="mt-1 block truncate text-xs text-slate-500">
-                  {parent ? `Sous-catégorie de ${parent.name}` : category.slug ?? 'Catégorie racine'}
-                </span>
-                {childCount > 0 ? (
-                  <span className="mt-2 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
-                    {formatNumber(childCount)} sous-catégorie{childCount > 1 ? 's' : ''}
-                  </span>
-                ) : null}
-              </span>
-            </Link>
-          )
-        })}
-      </div>
+        <div className="mt-5 max-h-[70vh] overflow-y-auto pr-1">
+          <CategoryTree />
+        </div>
+      </section>
     </div>
   )
 }

@@ -41,7 +41,7 @@ class Command(BaseCommand):
 
         # 1. Tags seeding
         tempTags = []
-        tagLength = 20
+        tagLength = 100
         for i in range(tagLength):
             # Logging
             self.log("seeding tag", k=i, n=tagLength)
@@ -57,7 +57,7 @@ class Command(BaseCommand):
         self.log("Starting Category seeding...")
 
         temp_categories = []
-        categoryLength = 100
+        categoryLength = 1000
         i = 0
         seen = set()
         while len(temp_categories) < categoryLength:
@@ -87,7 +87,7 @@ class Command(BaseCommand):
 
         tempUser = []
         hash = make_password("test1234")
-        userLength = 500
+        userLength = 1000
 
         for i in range(userLength):
             # Logging
@@ -105,12 +105,12 @@ class Command(BaseCommand):
 
         # 4. Product seeding
         tempProduct = []
-        productLength = 10000
+        productLength = 50000
 
         # Logging
         self.log("Starting Product seeding...")
 
-        for i in range(10000):
+        for i in range(productLength):
             # Logging
             self.log("seeding products", k=i, n=productLength)
 
@@ -150,7 +150,7 @@ class Command(BaseCommand):
         self.log("Starting Review seeding...")
 
         tempReview = []
-        reviewLength = 30000
+        reviewLength = 50000
 
         for i in range(reviewLength):
             # Logging
@@ -176,7 +176,7 @@ class Command(BaseCommand):
         self.log("Starting Order seeding...")
 
         tempOrder = []
-        orderLength = 100
+        orderLength = 500
 
         for i in range(orderLength):
             # Logging
@@ -195,7 +195,7 @@ class Command(BaseCommand):
         self.log("Starting OrderItem seeding...")
 
         tempOrderItem = []
-        orderItemLength = 500
+        orderItemLength = 1000
 
         for i in range(orderItemLength):
             # Logging

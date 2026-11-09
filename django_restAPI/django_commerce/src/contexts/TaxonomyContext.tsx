@@ -9,12 +9,14 @@ import {
 } from 'react'
 import { listAllCategories, listAllTags } from '../api/client'
 import type { Category, Tag } from '../api/types'
+import { buildCategoryTree, type CategoryTreeNode } from '../lib/categoryTree'
 
 interface TaxonomyContextValue {
   categories: Category[]
   tags: Tag[]
   categoryById: Map<number, Category>
   tagById: Map<number, Tag>
+  categoryTree: CategoryTreeNode[]
   loading: boolean
   error: string | null
   reload: () => void
@@ -65,6 +67,11 @@ export function TaxonomyProvider({ children }: { children: ReactNode }) {
     [tags],
   )
 
+  const categoryTree = useMemo(
+    () => buildCategoryTree(categories),
+    [categories],
+  )
+
   const reload = useCallback(() => {
     setReloadToken((token) => token + 1)
   }, [])
@@ -75,11 +82,21 @@ export function TaxonomyProvider({ children }: { children: ReactNode }) {
       tags,
       categoryById,
       tagById,
+      categoryTree,
       loading,
       error,
       reload,
     }),
-    [categories, categoryById, error, loading, reload, tagById, tags],
+    [
+      categories,
+      categoryById,
+      categoryTree,
+      error,
+      loading,
+      reload,
+      tagById,
+      tags,
+    ],
   )
 
   return <TaxonomyContext.Provider value={value}>{children}</TaxonomyContext.Provider>

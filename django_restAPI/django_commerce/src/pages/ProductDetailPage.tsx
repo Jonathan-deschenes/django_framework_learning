@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import type { Product } from '../api/types'
+import { CategoryBreadcrumb, CategoryPath } from '../components/CategoryBreadcrumb'
 import { ProductImage } from '../components/ProductImage'
 import { RatingStars } from '../components/RatingStars'
 import { ReviewList } from '../components/ReviewList'
@@ -114,13 +115,10 @@ export function ProductDetailPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
-      <nav className="flex flex-wrap items-center gap-2 text-sm text-slate-500" aria-label="Fil d’Ariane">
-        <Link to="/" className="font-medium text-indigo-600 hover:text-indigo-700">
-          Catalogue
-        </Link>
-        <span aria-hidden="true">/</span>
-        <span className="truncate text-slate-700">{product.name}</span>
-      </nav>
+      <CategoryBreadcrumb
+        category={product.categories[0]}
+        trailing={product.name}
+      />
 
       <div className="mt-6 grid gap-8 lg:grid-cols-2 lg:gap-12">
         <ProductImage
@@ -129,16 +127,29 @@ export function ProductDetailPage() {
         />
 
         <div>
-          <div className="flex flex-wrap items-center gap-2">
-            {product.categories.map((category) => (
-              <Link
-                key={category.id}
-                to={`/categories/${category.id}`}
-                className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-indigo-700 transition hover:bg-indigo-100"
-              >
-                {category.name}
-              </Link>
-            ))}
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0 space-y-1.5">
+              {product.categories.length > 0 ? (
+                <>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {product.categories.length > 1 ? 'Catégories' : 'Catégorie'}
+                  </p>
+                  <div className="space-y-1">
+                    {product.categories.map((category) => (
+                      <CategoryPath
+                        key={category.id}
+                        category={category}
+                        lastAsCurrent={false}
+                        className="flex flex-wrap items-center gap-1 text-xs font-semibold"
+                        linkClassName="rounded-full bg-indigo-50 px-2.5 py-1 text-indigo-700 transition hover:bg-indigo-100"
+                        currentClassName="rounded-full bg-indigo-100 px-2.5 py-1 text-indigo-800"
+                      />
+                    ))}
+                  </div>
+                </>
+              ) : null}
+            </div>
+
             <span
               className={`rounded-full px-3 py-1 text-xs font-semibold ${
                 product.is_active && product.stock > 0
