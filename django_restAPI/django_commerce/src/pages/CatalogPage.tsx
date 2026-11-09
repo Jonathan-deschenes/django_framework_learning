@@ -3,10 +3,22 @@ import { useTaxonomy } from '../contexts/TaxonomyContext'
 import { formatNumber } from '../lib/format'
 import { Pagination } from '../components/Pagination'
 import { ProductCard } from '../components/ProductCard'
+import { ProductFilters } from '../components/ProductFilters'
 import { EmptyState, ErrorState, ProductGridSkeleton } from '../components/States'
 
 export function CatalogPage() {
-  const { products, total, page, totalPages, loading, error, setPage, reload } = useCatalog()
+  const {
+    products,
+    total,
+    page,
+    totalPages,
+    loading,
+    error,
+    setPage,
+    reload,
+    hasActiveFilters,
+    resetFilters,
+  } = useCatalog()
   const { categories, tags } = useTaxonomy()
 
   const handlePageChange = (nextPage: number) => {
@@ -66,30 +78,55 @@ export function CatalogPage() {
           ) : null}
         </div>
 
-        <div className="mt-6">
-          {loading ? (
-            <ProductGridSkeleton />
-          ) : error ? (
-            <ErrorState message={error} onRetry={reload} />
-          ) : products.length === 0 ? (
-            <EmptyState
-              title="Aucun produit à afficher"
-              message="Le catalogue est vide pour le moment. Lancez la commande seed_data pour ajouter des produits de démonstration."
-            />
-          ) : (
-            <>
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {products.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
-              <Pagination
-                page={page}
-                totalPages={totalPages}
-                onPageChange={handlePageChange}
+        <div className="mt-6 lg:grid lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-start lg:gap-8">
+          <div className="mb-6 lg:sticky lg:top-24 lg:mb-0 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
+            <ProductFilters />
+          </div>
+
+          <div className="min-w-0">
+            {loading ? (
+              <ProductGridSkeleton />
+            ) : error ? (
+              <ErrorState message={error} onRetry={reload} />
+            ) : products.length === 0 ? (
+              <EmptyState
+                title={
+                  hasActiveFilters
+                    ? 'Aucun produit ne correspond aux filtres'
+                    : 'Aucun produit à afficher'
+                }
+                message={
+                  hasActiveFilters
+                    ? 'Essayez d’élargir votre recherche ou réinitialisez les filtres pour voir tout le catalogue.'
+                    : 'Le catalogue est vide pour le moment. Lancez la commande seed_data pour ajouter des produits de démonstration.'
+                }
+                action={
+                  hasActiveFilters ? (
+                    <button
+                      type="button"
+                      onClick={resetFilters}
+                      className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                    >
+                      Réinitialiser les filtres
+                    </button>
+                  ) : undefined
+                }
               />
-            </>
-          )}
+            ) : (
+              <>
+                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                  {products.map((product) => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
+                </div>
+                <Pagination
+                  page={page}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                />
+              </>
+            )}
+          </div>
         </div>
       </section>
     </div>

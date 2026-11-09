@@ -58,13 +58,59 @@ async function getAllPages<T>(path: string, signal?: AbortSignal): Promise<T[]> 
   return results
 }
 
+export interface ProductListParams {
+  search?: string
+  minPrice?: string
+  maxPrice?: string
+  minRating?: number
+  maxRating?: number
+  inStock?: boolean
+  isActive?: boolean
+  categoryIds?: number[]
+  tagIds?: number[]
+}
+
 export function listProducts(
   limit: number,
   offset: number,
+  params: ProductListParams = {},
   signal?: AbortSignal,
 ): Promise<PaginatedResponse<Product>> {
+  const searchParams = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+  })
+
+  const search = params.search?.trim()
+  if (search) searchParams.set('search', search)
+
+  const minPrice = params.minPrice?.trim()
+  if (minPrice) searchParams.set('min_price', minPrice)
+
+  const maxPrice = params.maxPrice?.trim()
+  if (maxPrice) searchParams.set('max_price', maxPrice)
+
+  if (params.minRating !== undefined) {
+    searchParams.set('min_rating', String(params.minRating))
+  }
+
+  if (params.maxRating !== undefined) {
+    searchParams.set('max_rating', String(params.maxRating))
+  }
+
+  if (params.inStock !== undefined) {
+    searchParams.set('in_stock', String(params.inStock))
+  }
+
+  if (params.isActive !== undefined) {
+    searchParams.set('is_active', String(params.isActive))
+  }
+
+  params.categoryIds?.forEach((id) => searchParams.append('categories', String(id)))
+  params.tagIds?.forEach((id) => searchParams.append('tags', String(id)))
+
   return request<PaginatedResponse<Product>>(
-    `/api/product/?limit=${limit}&offset=${offset}`,
+    `/api/product/?${searchParams.toString()}`,
     signal,
   )
 }

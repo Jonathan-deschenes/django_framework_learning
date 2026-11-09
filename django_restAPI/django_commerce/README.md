@@ -29,11 +29,22 @@ python manage.py runserver
 
 Lecture seule :
 
-- `GET /api/product/?limit=&offset=`
+- `GET /api/product/?limit=&offset=&search=&min_price=&max_price=&min_rating=&max_rating=&in_stock=&is_active=&categories=&tags=`
 - `GET /api/product/<id>/`
 - `GET /api/category/?limit=100`
 - `GET /api/tag/?limit=100`
 - `GET /api/user/<id>/`
 
-Le catalogue est paginé côté serveur (24 produits par page). L’API ne supporte
-pas la recherche ni les filtres : les pages catégories/tags sont informatives.
+Le catalogue est paginé côté serveur (24 produits par page) et filtré côté
+serveur :
+
+- `search` : recherche sur le nom du produit
+- `min_price`, `max_price` : fourchette de prix
+- `min_rating`, `max_rating` : fourchette de note moyenne (1 à 5)
+- `in_stock=true|false` : produits en stock ou épuisés
+- `is_active=true|false` : produits actifs ou inactifs
+- `categories=<id>` et `tags=<id>` : répétables pour filtrer sur plusieurs
+  catégories ou tags
+
+La sidebar de filtres du catalogue utilise directement ces paramètres.
+

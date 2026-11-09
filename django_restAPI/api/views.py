@@ -1,7 +1,9 @@
+from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 from environs import ValidationError
-from rest_framework import generics
+from rest_framework import generics, filters
 
+from .filters import ProductPriceFilter
 from .models import *
 from .serializers import *
 
@@ -11,6 +13,9 @@ from .serializers import *
 class ProductListCreate(generics.ListCreateAPIView):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    search_fields = ['name']
+    filterset_class = ProductPriceFilter
 
 
 class ProductRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):

@@ -7,10 +7,11 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { listProducts } from '../api/client'
+import { listProducts, type ProductListParams } from '../api/client'
 import type { Product } from '../api/types'
 
 const PAGE_SIZE = 24
+const FILTER_DEBOUNCE_MS = 300
 
 interface CatalogContextValue {
   products: Product[]
@@ -20,7 +21,12 @@ interface CatalogContextValue {
   totalPages: number
   loading: boolean
   error: string | null
+  filters: ProductListParams
+  activeFilterCount: number
+  hasActiveFilters: boolean
   setPage: (page: number) => void
+  applyFilters: (patch: Partial<ProductListParams>) => void
+  resetFilters: () => void
   reload: () => void
 }
 
@@ -32,33 +38,44 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [filters, setFilters] = useState<ProductListParams>({})
   const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
     const controller = new AbortController()
 
-    setLoading(true)
-    setError(null)
+    const timer = window.setTimeout(() => {
+      setLoading(true)
+      setError(null)
 
-    listProducts(PAGE_SIZE, (page - 1) * PAGE_SIZE, controller.signal)
-      .then((response) => {
-        setProducts(response.results)
-        setTotal(response.count)
-        setLoading(false)
-      })
-      .catch((cause: unknown) => {
-        if (controller.signal.aborted) return
+      listProducts(
+        PAGE_SIZE,
+        (page - 1) * PAGE_SIZE,
+        filters,
+        controller.signal,
+      )
+        .then((response) => {
+          setProducts(response.results)
+          setTotal(response.count)
+          setLoading(false)
+        })
+        .catch((cause: unknown) => {
+          if (controller.signal.aborted) return
 
-        setError(
-          cause instanceof Error
-            ? cause.message
-            : 'Impossible de charger le catalogue pour le moment.',
-        )
-        setLoading(false)
-      })
+          setError(
+            cause instanceof Error
+              ? cause.message
+              : 'Impossible de charger le catalogue pour le moment.',
+          )
+          setLoading(false)
+        })
+    }, FILTER_DEBOUNCE_MS)
 
-    return () => controller.abort()
-  }, [page, reloadToken])
+    return () => {
+      window.clearTimeout(timer)
+      controller.abort()
+    }
+  }, [filters, page, reloadToken])
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
@@ -71,6 +88,32 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
     },
     [totalPages],
   )
+
+  const applyFilters = useCallback((patch: Partial<ProductListParams>) => {
+    setFilters((currentFilters) => ({ ...currentFilters, ...patch }))
+    setPageState(1)
+  }, [])
+
+  const resetFilters = useCallback(() => {
+    setFilters({})
+    setPageState(1)
+  }, [])
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0
+
+    if (filters.search?.trim()) count += 1
+    if (filters.minPrice?.trim()) count += 1
+    if (filters.maxPrice?.trim()) count += 1
+    if (filters.minRating !== undefined) count += 1
+    if (filters.maxRating !== undefined) count += 1
+    if (filters.inStock !== undefined) count += 1
+    if (filters.isActive !== undefined) count += 1
+    if (filters.categoryIds?.length) count += 1
+    if (filters.tagIds?.length) count += 1
+
+    return count
+  }, [filters])
 
   const reload = useCallback(() => {
     setReloadToken((token) => token + 1)
@@ -85,10 +128,28 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       totalPages,
       loading,
       error,
+      filters,
+      activeFilterCount,
+      hasActiveFilters: activeFilterCount > 0,
       setPage,
+      applyFilters,
+      resetFilters,
       reload,
     }),
-    [error, loading, page, products, reload, setPage, total, totalPages],
+    [
+      activeFilterCount,
+      applyFilters,
+      error,
+      filters,
+      loading,
+      page,
+      products,
+      reload,
+      resetFilters,
+      setPage,
+      total,
+      totalPages,
+    ],
   )
 
   return <CatalogContext.Provider value={value}>{children}</CatalogContext.Provider>
