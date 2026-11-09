@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    {% comment %}Style for error message to be in red color{% endcomment %}
+    <style>
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <h2>Login</h2>
+        <form action="{% url 'login' %}" method="POST">
+            {% csrf_token %}
+            {% comment %} Hidden input {% endcomment %}
+            <input type="hidden" name="next" value={{next}}> 
+            <div>
+                <label for="username">Username: </label>
+                <input type="text" name="username" id="username" required>
+            </div>
+            <div>
+                <label for="password">Password: </label>
+                <input type="text" name="password" id="password" required>
+            </div>
+            <button type="submit">Login</button >
+        </form>
+        {% comment %} Checking for any eror messages {% endcomment %}
+        {%if error%}
+            <p class="error">{{error}}</p>
+        {% endif %}
+
+        <p>Don't have an account ? <a href="{% url 'register' %}">Register Here</a></p>
+    </div>
+</body>
+</html>

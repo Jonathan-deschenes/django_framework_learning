@@ -1,0 +1,27 @@
+{
+  "name": "Django",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12",
+  "postCreateCommand": "pip install -r requirements.txt",
+  "forwardPorts": [8000],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "batisteo.vscode-django"
+      ],
+      "settings": {
+        "files.associations": {
+          "**/templates/**/*.html": "django-html",
+          "**/templates/**/*": "django-txt"
+        },
+        "emmet.includeLanguages": {
+          "django-html": "html"
+        },
+        "[django-html]": {
+          "editor.defaultFormatter": "batisteo.vscode-django"
+        }
+      }
+    }
+  }
+}
