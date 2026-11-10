@@ -2,11 +2,13 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTaxonomy } from '../contexts/TaxonomyContext'
 import { getCategoryPathIds, type CategoryTreeNode } from '../lib/categoryTree'
+import { categoryBrowsePath } from '../lib/routes'
 import { ChevronRightIcon } from './icons'
 
 interface CategoryTreeProps {
   activeCategoryId?: number
   className?: string
+  onSelect?: (id: number) => void
 }
 
 interface TreeNodeProps {
@@ -15,6 +17,7 @@ interface TreeNodeProps {
   activePathIds: number[]
   expandedIds: Set<number>
   onToggle: (id: number) => void
+  onSelect?: (id: number) => void
 }
 
 function TreeNode({
@@ -23,6 +26,7 @@ function TreeNode({
   activePathIds,
   expandedIds,
   onToggle,
+  onSelect,
 }: TreeNodeProps) {
   const { category, children } = node
   const hasChildren = children.length > 0
@@ -52,17 +56,32 @@ function TreeNode({
           <span className="size-6 shrink-0" aria-hidden="true" />
         )}
 
-        <Link
-          to={`/categories/${category.id}`}
-          aria-current={isActive ? 'page' : undefined}
-          className={`flex-1 truncate py-1.5 pr-1 text-sm transition ${
-            isActive
-              ? 'font-semibold text-indigo-700'
-              : 'text-slate-600 hover:text-indigo-700'
-          }`}
-        >
-          {category.name}
-        </Link>
+        {onSelect ? (
+          <button
+            type="button"
+            onClick={() => onSelect(category.id)}
+            aria-current={isActive ? 'page' : undefined}
+            className={`flex-1 truncate py-1.5 pr-1 text-left text-sm transition ${
+              isActive
+                ? 'font-semibold text-indigo-700'
+                : 'text-slate-600 hover:text-indigo-700'
+            }`}
+          >
+            {category.name}
+          </button>
+        ) : (
+          <Link
+            to={categoryBrowsePath(category.id)}
+            aria-current={isActive ? 'page' : undefined}
+            className={`flex-1 truncate py-1.5 pr-1 text-sm transition ${
+              isActive
+                ? 'font-semibold text-indigo-700'
+                : 'text-slate-600 hover:text-indigo-700'
+            }`}
+          >
+            {category.name}
+          </Link>
+        )}
 
         {hasChildren ? (
           <span className="shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
@@ -81,6 +100,7 @@ function TreeNode({
               activePathIds={activePathIds}
               expandedIds={expandedIds}
               onToggle={onToggle}
+              onSelect={onSelect}
             />
           ))}
         </ul>
@@ -89,7 +109,11 @@ function TreeNode({
   )
 }
 
-export function CategoryTree({ activeCategoryId, className = '' }: CategoryTreeProps) {
+export function CategoryTree({
+  activeCategoryId,
+  className = '',
+  onSelect,
+}: CategoryTreeProps) {
   const { categoryTree, categoryById } = useTaxonomy()
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set())
 
@@ -123,6 +147,7 @@ export function CategoryTree({ activeCategoryId, className = '' }: CategoryTreeP
           activePathIds={activePathIds}
           expandedIds={expandedIds}
           onToggle={toggle}
+          onSelect={onSelect}
         />
       ))}
     </ul>

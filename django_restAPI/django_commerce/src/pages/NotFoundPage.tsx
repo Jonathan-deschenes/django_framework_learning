@@ -15,7 +15,7 @@ export function NotFoundPage() {
         continuer votre navigation.
       </p>
       <Link
-        to="/"
+        to="/catalogue"
         className="mt-8 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700"
       >
         <ArrowLeftIcon />

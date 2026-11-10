@@ -12,6 +12,7 @@ import type { Product } from '../api/types'
 
 const PAGE_SIZE = 24
 const FILTER_DEBOUNCE_MS = 300
+const EMPTY_CATEGORY_IDS: number[] = []
 
 interface CatalogContextValue {
   products: Product[]
@@ -32,7 +33,17 @@ interface CatalogContextValue {
 
 const CatalogContext = createContext<CatalogContextValue | null>(null)
 
-export function CatalogProvider({ children }: { children: ReactNode }) {
+interface CatalogProviderProps {
+  children: ReactNode
+  scopeCategoryIds?: number[]
+  scopeReady?: boolean
+}
+
+export function CatalogProvider({
+  children,
+  scopeCategoryIds = EMPTY_CATEGORY_IDS,
+  scopeReady = true,
+}: CatalogProviderProps) {
   const [page, setPageState] = useState(1)
   const [products, setProducts] = useState<Product[]>([])
   const [total, setTotal] = useState(0)
@@ -41,7 +52,17 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   const [filters, setFilters] = useState<ProductListParams>({})
   const [reloadToken, setReloadToken] = useState(0)
 
+  const effectiveFilters = useMemo(() => {
+    if (scopeCategoryIds.length === 0) return filters
+    return { ...filters, categoryIds: scopeCategoryIds }
+  }, [filters, scopeCategoryIds])
+
   useEffect(() => {
+    if (!scopeReady) {
+      setLoading(true)
+      return
+    }
+
     const controller = new AbortController()
 
     const timer = window.setTimeout(() => {
@@ -51,10 +72,11 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       listProducts(
         PAGE_SIZE,
         (page - 1) * PAGE_SIZE,
-        filters,
+        effectiveFilters,
         controller.signal,
       )
         .then((response) => {
+          if (controller.signal.aborted) return
           setProducts(response.results)
           setTotal(response.count)
           setLoading(false)
@@ -75,7 +97,7 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       window.clearTimeout(timer)
       controller.abort()
     }
-  }, [filters, page, reloadToken])
+  }, [effectiveFilters, page, reloadToken, scopeReady])
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
@@ -109,11 +131,11 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
     if (filters.maxRating !== undefined) count += 1
     if (filters.inStock !== undefined) count += 1
     if (filters.isActive !== undefined) count += 1
-    if (filters.categoryIds?.length) count += 1
+    if (scopeCategoryIds.length === 0 && filters.categoryIds?.length) count += 1
     if (filters.tagIds?.length) count += 1
 
     return count
-  }, [filters])
+  }, [filters, scopeCategoryIds])
 
   const reload = useCallback(() => {
     setReloadToken((token) => token + 1)

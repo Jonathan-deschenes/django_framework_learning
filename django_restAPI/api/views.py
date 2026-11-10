@@ -29,6 +29,8 @@ class ProductRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
 class CategoryListCreate(generics.ListCreateAPIView):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name']
 
 
 class CategoryRetrieveupdateDestroy(generics.RetrieveUpdateDestroyAPIView):
@@ -42,6 +44,8 @@ class CategoryRetrieveupdateDestroy(generics.RetrieveUpdateDestroyAPIView):
 class TagListCreate(generics.ListCreateAPIView):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name']
 
 
 class TagRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):

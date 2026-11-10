@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import type { Category } from '../api/types'
 import { useTaxonomy } from '../contexts/TaxonomyContext'
 import { getCategoryPath } from '../lib/categoryTree'
+import { categoryBrowsePath } from '../lib/routes'
 import { ChevronRightIcon } from './icons'
 
 interface CategoryPathProps {
@@ -38,7 +39,7 @@ export function CategoryPath({
                 {entry.name}
               </span>
             ) : (
-              <Link to={`/categories/${entry.id}`} className={linkClassName}>
+              <Link to={categoryBrowsePath(entry.id)} className={linkClassName}>
                 {entry.name}
               </Link>
             )}
@@ -65,7 +66,7 @@ export function CategoryBreadcrumb({
       aria-label="Fil d’Ariane"
       className={`flex flex-wrap items-center gap-1.5 text-sm text-slate-500 ${className}`}
     >
-      <Link to="/" className="font-medium text-indigo-600 hover:text-indigo-700">
+      <Link to="/catalogue" className="font-medium text-indigo-600 hover:text-indigo-700">
         Catalogue
       </Link>
       <ChevronRightIcon className="size-3 shrink-0 text-slate-300" />

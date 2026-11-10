@@ -80,7 +80,7 @@ export function ProductDetailPage() {
         />
         <div className="mt-6 text-center">
           <Link
-            to="/"
+            to="/catalogue"
             className="inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-700"
           >
             <ArrowLeftIcon />
@@ -99,7 +99,7 @@ export function ProductDetailPage() {
           message="Ce produit n’existe pas ou n’est plus disponible."
           action={
             <Link
-              to="/"
+              to="/catalogue"
               className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700"
             >
               <ArrowLeftIcon />

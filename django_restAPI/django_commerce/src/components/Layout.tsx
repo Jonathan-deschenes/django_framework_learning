@@ -36,6 +36,9 @@ export function Layout() {
             aria-label="Navigation principale"
           >
             <NavLink to="/" end className={navClassName}>
+              Accueil
+            </NavLink>
+            <NavLink to="/catalogue" className={navClassName}>
               Catalogue
             </NavLink>
             <NavLink to="/categories" className={navClassName}>

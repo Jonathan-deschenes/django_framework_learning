@@ -127,6 +127,42 @@ export function listAllTags(signal?: AbortSignal): Promise<Tag[]> {
   return getAllPages<Tag>('/api/tag/', signal)
 }
 
+export function searchCategories(
+  search: string,
+  limit = 50,
+  offset = 0,
+  signal?: AbortSignal,
+): Promise<PaginatedResponse<Category>> {
+  const searchParams = new URLSearchParams({
+    search,
+    limit: String(limit),
+    offset: String(offset),
+  })
+
+  return request<PaginatedResponse<Category>>(
+    `/api/category/?${searchParams.toString()}`,
+    signal,
+  )
+}
+
+export function searchTags(
+  search: string,
+  limit = 50,
+  offset = 0,
+  signal?: AbortSignal,
+): Promise<PaginatedResponse<Tag>> {
+  const searchParams = new URLSearchParams({
+    search,
+    limit: String(limit),
+    offset: String(offset),
+  })
+
+  return request<PaginatedResponse<Tag>>(
+    `/api/tag/?${searchParams.toString()}`,
+    signal,
+  )
+}
+
 export function retrieveUser(id: number, signal?: AbortSignal): Promise<User> {
   return request<User>(`/api/user/${id}/`, signal)
 }

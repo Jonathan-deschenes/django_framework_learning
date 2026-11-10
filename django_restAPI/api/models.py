@@ -59,9 +59,10 @@ class Order(models.Model):
 
 
 class Product(models.Model):
-    id = models.AutoField(primary_key=True)
+    id = models.BigAutoField(primary_key=True)
     name = models.CharField(max_length=100)
     description = models.TextField(max_length=1000)
+    image = models.TextField(max_length=100)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     stock = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
@@ -73,7 +74,7 @@ class Product(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return (f'id: {self.id}, name: {self.name}, description: {self.description}, price: {self.price}, stock: {self.stock}, is_active: {self.is_active}, created_at: {self.created_at}')
+        return self.name
 
 
 class Review(models.Model):

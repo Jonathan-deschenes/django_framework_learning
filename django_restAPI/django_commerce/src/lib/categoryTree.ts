@@ -56,3 +56,33 @@ export function getCategoryPathIds(
 ): number[] {
   return getCategoryPath(category, categoryById).map((entry) => entry.id)
 }
+
+export function getDescendantCategoryIds(
+  categoryId: number,
+  categories: Category[],
+): number[] {
+  const childrenByParent = new Map<number, Category[]>()
+
+  categories.forEach((category) => {
+    if (category.parent === null) return
+
+    const siblings = childrenByParent.get(category.parent) ?? []
+    siblings.push(category)
+    childrenByParent.set(category.parent, siblings)
+  })
+
+  const ids: number[] = []
+  const visited = new Set<number>()
+  const stack = [categoryId]
+
+  while (stack.length > 0) {
+    const id = stack.pop()
+    if (id === undefined || visited.has(id)) continue
+
+    visited.add(id)
+    ids.push(id)
+    childrenByParent.get(id)?.forEach((child) => stack.push(child.id))
+  }
+
+  return ids
+}

@@ -1,4 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { searchCategories, searchTags } from '../api/client'
+import type { Category } from '../api/types'
 import { useCatalog } from '../contexts/CatalogContext'
 import { useTaxonomy } from '../contexts/TaxonomyContext'
 import { SearchIcon, StarIcon, XMarkIcon } from './icons'
@@ -9,35 +11,33 @@ const fieldClassName =
 const labelClassName =
   'text-xs font-semibold uppercase tracking-wide text-slate-500'
 
-interface CheckboxListProps {
-  items: Array<{ id: number; name: string }>
-  selectedIds: number[]
-  onToggle: (id: number) => void
-  loading: boolean
-  error: string | null
-  emptyLabel: string
+type CheckboxItem = { id: number; name: string }
+
+const SEARCH_DEBOUNCE_MS = 300
+
+async function searchCategoryItems(
+  query: string,
+  signal: AbortSignal,
+): Promise<CheckboxItem[]> {
+  const response = await searchCategories(query, 50, 0, signal)
+  return response.results
 }
 
-function CheckboxList({
-  items,
-  selectedIds,
-  onToggle,
-  loading,
-  error,
-  emptyLabel,
-}: CheckboxListProps) {
-  if (loading) {
-    return <p className="px-2 py-1.5 text-xs text-slate-400">Chargement…</p>
-  }
+async function searchTagItems(
+  query: string,
+  signal: AbortSignal,
+): Promise<CheckboxItem[]> {
+  const response = await searchTags(query, 50, 0, signal)
+  return response.results
+}
 
-  if (error) {
-    return <p className="px-2 py-1.5 text-xs text-rose-600">{error}</p>
-  }
+interface CheckboxItemsProps {
+  items: CheckboxItem[]
+  selectedIds: number[]
+  onToggle: (id: number) => void
+}
 
-  if (items.length === 0) {
-    return <p className="px-2 py-1.5 text-xs text-slate-400">{emptyLabel}</p>
-  }
-
+function CheckboxItems({ items, selectedIds, onToggle }: CheckboxItemsProps) {
   return (
     <>
       {items.map((item) => (
@@ -55,6 +55,144 @@ function CheckboxList({
         </label>
       ))}
     </>
+  )
+}
+
+interface SearchableCheckboxListProps {
+  items: CheckboxItem[]
+  selectedIds: number[]
+  onToggle: (id: number) => void
+  loading: boolean
+  error: string | null
+  emptyLabel: string
+  searchPlaceholder: string
+  search: (query: string, signal: AbortSignal) => Promise<CheckboxItem[]>
+}
+
+function SearchableCheckboxList({
+  items,
+  selectedIds,
+  onToggle,
+  loading,
+  error,
+  emptyLabel,
+  searchPlaceholder,
+  search,
+}: SearchableCheckboxListProps) {
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<CheckboxItem[] | null>(null)
+  const [searching, setSearching] = useState(false)
+  const [searchError, setSearchError] = useState<string | null>(null)
+
+  const trimmedQuery = query.trim()
+
+  useEffect(() => {
+    if (!trimmedQuery) {
+      setResults(null)
+      setSearching(false)
+      setSearchError(null)
+      return
+    }
+
+    const controller = new AbortController()
+    setSearching(true)
+    setSearchError(null)
+
+    const timer = window.setTimeout(() => {
+      search(trimmedQuery, controller.signal)
+        .then((nextResults) => {
+          if (controller.signal.aborted) return
+          setResults(nextResults)
+          setSearching(false)
+        })
+        .catch((cause: unknown) => {
+          if (controller.signal.aborted) return
+          setSearchError(
+            cause instanceof Error
+              ? cause.message
+              : 'Impossible de lancer la recherche.',
+          )
+          setSearching(false)
+        })
+    }, SEARCH_DEBOUNCE_MS)
+
+    return () => {
+      window.clearTimeout(timer)
+      controller.abort()
+    }
+  }, [search, trimmedQuery])
+
+  const visibleItems = results ?? items
+  const selectedItems = useMemo(
+    () => items.filter((item) => selectedIds.includes(item.id)),
+    [items, selectedIds],
+  )
+  const pinnedSelected = results
+    ? selectedItems.filter(
+        (selectedItem) =>
+          !visibleItems.some((item) => item.id === selectedItem.id),
+      )
+    : []
+
+  const activeLoading = trimmedQuery ? searching : loading
+  const activeError = trimmedQuery ? searchError : error
+
+  return (
+    <div className="space-y-2">
+      <div className="relative">
+        <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-slate-400" />
+        <input
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder={searchPlaceholder}
+          aria-label={searchPlaceholder}
+          className="w-full rounded-lg border border-slate-200 bg-white py-1.5 pl-8 pr-8 text-xs text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+        />
+        {query ? (
+          <button
+            type="button"
+            onClick={() => setQuery('')}
+            aria-label="Effacer la recherche"
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+          >
+            <XMarkIcon className="size-3.5" />
+          </button>
+        ) : null}
+      </div>
+
+      <div className="max-h-48 space-y-0.5 overflow-y-auto rounded-xl border border-slate-100 bg-slate-50/60 p-1.5">
+        {activeLoading ? (
+          <p className="px-2 py-1.5 text-xs text-slate-400">Chargement…</p>
+        ) : activeError ? (
+          <p className="px-2 py-1.5 text-xs text-rose-600">{activeError}</p>
+        ) : visibleItems.length === 0 && pinnedSelected.length === 0 ? (
+          <p className="px-2 py-1.5 text-xs text-slate-400">
+            {trimmedQuery ? 'Aucun résultat' : emptyLabel}
+          </p>
+        ) : (
+          <>
+            {pinnedSelected.length > 0 ? (
+              <div className="mb-1 border-b border-slate-200 pb-1">
+                <p className="px-2 pt-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                  Sélectionnées
+                </p>
+                <CheckboxItems
+                  items={pinnedSelected}
+                  selectedIds={selectedIds}
+                  onToggle={onToggle}
+                />
+              </div>
+            ) : null}
+            <CheckboxItems
+              items={visibleItems}
+              selectedIds={selectedIds}
+              onToggle={onToggle}
+            />
+          </>
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -105,7 +243,19 @@ function StarRatingFilter({ label, value, onChange }: StarRatingFilterProps) {
   )
 }
 
-export function ProductFilters() {
+interface ProductFiltersProps {
+  scopedCategory?: Category | null
+  onOpenCategoryDrawer?: () => void
+  className?: string
+  showHeader?: boolean
+}
+
+export function ProductFilters({
+  scopedCategory = null,
+  onOpenCategoryDrawer,
+  className = '',
+  showHeader = true,
+}: ProductFiltersProps) {
   const {
     filters,
     applyFilters,
@@ -119,8 +269,6 @@ export function ProductFilters() {
     loading: taxonomyLoading,
     error: taxonomyError,
   } = useTaxonomy()
-
-  const [isOpen, setIsOpen] = useState(false)
 
   const sortedCategories = useMemo(
     () => [...categories].sort((left, right) => left.name.localeCompare(right.name, 'fr')),
@@ -156,71 +304,78 @@ export function ProductFilters() {
   return (
     <aside
       aria-label="Filtres des produits"
-      className="rounded-2xl border border-slate-200 bg-white shadow-sm"
+      className={`rounded-2xl border border-slate-200 bg-white shadow-sm ${className}`}
     >
-      <div className="flex items-center justify-between gap-3 p-5">
-        <div className="min-w-0">
-          <h2 className="text-base font-semibold tracking-tight text-slate-900">
-            Filtres
-          </h2>
-          <p className="mt-0.5 text-xs text-slate-500">
-            {hasActiveFilters
-              ? `${activeFilterCount} filtre${activeFilterCount > 1 ? 's' : ''} actif${activeFilterCount > 1 ? 's' : ''}`
-              : 'Affinez votre recherche'}
-          </p>
-        </div>
+      {showHeader ? (
+        <div className="flex items-center justify-between gap-3 p-5">
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold tracking-tight text-slate-900">
+              Filtres
+            </h2>
+            <p className="mt-0.5 text-xs text-slate-500">
+              {hasActiveFilters
+                ? `${activeFilterCount} filtre${activeFilterCount > 1 ? 's' : ''} actif${activeFilterCount > 1 ? 's' : ''}`
+                : 'Affinez votre recherche'}
+            </p>
+          </div>
 
-        <div className="flex shrink-0 items-center gap-2">
           {hasActiveFilters ? (
             <button
               type="button"
               onClick={resetFilters}
-              className="rounded-lg px-2 py-1 text-xs font-semibold text-indigo-600 transition hover:bg-indigo-50 hover:text-indigo-700"
+              className="shrink-0 rounded-lg px-2 py-1 text-xs font-semibold text-indigo-600 transition hover:bg-indigo-50 hover:text-indigo-700"
             >
               Réinitialiser
             </button>
           ) : null}
-          <button
-            type="button"
-            onClick={() => setIsOpen((open) => !open)}
-            aria-expanded={isOpen}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 lg:hidden"
-          >
-            {isOpen ? 'Masquer' : 'Afficher'}
-          </button>
         </div>
-      </div>
+      ) : null}
 
       <div
-        className={`border-t border-slate-100 p-5 pt-4 ${isOpen ? 'block' : 'hidden'} lg:block`}
+        className={`p-5 pt-4 ${showHeader ? 'border-t border-slate-100' : ''}`}
       >
         <div className="space-y-5">
-          <div>
-            <label htmlFor="product-search" className={labelClassName}>
-              Recherche
-            </label>
-            <div className="relative mt-2">
-              <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-              <input
-                id="product-search"
-                type="search"
-                value={filters.search ?? ''}
-                onChange={(event) => applyFilters({ search: event.target.value })}
-                placeholder="Nom du produit…"
-                className={`${fieldClassName} pl-9 pr-9`}
-              />
-              {filters.search ? (
-                <button
-                  type="button"
-                  onClick={() => applyFilters({ search: '' })}
-                  aria-label="Effacer la recherche"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
-                >
-                  <XMarkIcon />
-                </button>
-              ) : null}
-            </div>
-          </div>
+          {scopedCategory ? (
+            <fieldset>
+              <legend className={labelClassName}>Catégorie</legend>
+              <div className="mt-2 rounded-xl border border-indigo-100 bg-indigo-50/60 p-3">
+                <p className="truncate text-sm font-semibold text-indigo-900">
+                  {scopedCategory.name}
+                </p>
+                <p className="mt-0.5 text-xs leading-5 text-indigo-700/80">
+                  Les filtres s’appliquent à cette catégorie et à ses sous-catégories.
+                </p>
+                {onOpenCategoryDrawer ? (
+                  <button
+                    type="button"
+                    onClick={onOpenCategoryDrawer}
+                    className="mt-2 inline-flex items-center rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-indigo-700 shadow-sm transition hover:bg-indigo-100"
+                  >
+                    Changer de catégorie
+                  </button>
+                ) : null}
+              </div>
+            </fieldset>
+          ) : (
+            <fieldset>
+              <legend className={labelClassName}>
+                Catégories
+                {filters.categoryIds?.length ? ` (${filters.categoryIds.length})` : ''}
+              </legend>
+              <div className="mt-2">
+                <SearchableCheckboxList
+                  items={sortedCategories}
+                  selectedIds={filters.categoryIds ?? []}
+                  onToggle={toggleCategory}
+                  loading={taxonomyLoading}
+                  error={taxonomyError}
+                  emptyLabel="Aucune catégorie disponible"
+                  searchPlaceholder="Rechercher une catégorie…"
+                  search={searchCategoryItems}
+                />
+              </div>
+            </fieldset>
+          )}
 
           <fieldset>
             <legend className={labelClassName}>Prix</legend>
@@ -309,33 +464,34 @@ export function ProductFilters() {
           </div>
 
           <fieldset>
-            <legend className={labelClassName}>Catégories</legend>
-            <div className="mt-2 max-h-48 space-y-0.5 overflow-y-auto rounded-xl border border-slate-100 bg-slate-50/60 p-1.5">
-              <CheckboxList
-                items={sortedCategories}
-                selectedIds={filters.categoryIds ?? []}
-                onToggle={toggleCategory}
-                loading={taxonomyLoading}
-                error={taxonomyError}
-                emptyLabel="Aucune catégorie disponible"
-              />
-            </div>
-          </fieldset>
-
-          <fieldset>
-            <legend className={labelClassName}>Tags</legend>
-            <div className="mt-2 max-h-48 space-y-0.5 overflow-y-auto rounded-xl border border-slate-100 bg-slate-50/60 p-1.5">
-              <CheckboxList
+            <legend className={labelClassName}>
+              Tags
+              {filters.tagIds?.length ? ` (${filters.tagIds.length})` : ''}
+            </legend>
+            <div className="mt-2">
+              <SearchableCheckboxList
                 items={sortedTags}
                 selectedIds={filters.tagIds ?? []}
                 onToggle={toggleTag}
                 loading={taxonomyLoading}
                 error={taxonomyError}
                 emptyLabel="Aucun tag disponible"
+                searchPlaceholder="Rechercher un tag…"
+                search={searchTagItems}
               />
             </div>
           </fieldset>
         </div>
+
+        {!showHeader && hasActiveFilters ? (
+          <button
+            type="button"
+            onClick={resetFilters}
+            className="mt-5 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            Réinitialiser les filtres
+          </button>
+        ) : null}
       </div>
     </aside>
   )

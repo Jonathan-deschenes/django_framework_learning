@@ -91,3 +91,19 @@ export function XMarkIcon({ className = 'size-4' }: IconProps) {
     </svg>
   )
 }
+
+export function MenuIcon({ className = 'size-5' }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5" />
+    </svg>
+  )
+}
+
+export function FunnelIcon({ className = 'size-5' }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 4.5h18l-7.5 9v5.25L10.5 21v-7.5L3 4.5Z" />
+    </svg>
+  )
+}
